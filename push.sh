@@ -1,0 +1,1 @@
+rsync -aPr /Users/Shu/ownCloud/Markov_Switching_SVAR swang@statoek-server3.wiso.uni-goettingen.de:~/
