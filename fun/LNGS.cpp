@@ -13,14 +13,7 @@ double loglike_MS_ICA(const arma::vec& theta, const arma::mat& r, const arma::ma
   int NoOBs = r.n_rows;
   //rotation angles
 
-  //state 1
-  double delta_1_1=theta(0);
-  double delta_2_1=theta(1);
-  double delta_3_1=theta(2);
-  //state 2
-  double delta_1_2=theta(3);
-  double delta_2_2=theta(4);
-  double delta_3_2=theta(5);
+  /
 
   //Switching Probabilities
   double p11 = theta(6);
@@ -38,15 +31,7 @@ double loglike_MS_ICA(const arma::vec& theta, const arma::mat& r, const arma::ma
   double p1t = 1/2;
   double p2t = 1/2;
   
-  // rotation matrices
-  arma::mat rot1_1;
-  arma::mat rot2_1;
-  arma::mat rot3_1;
-  
-  arma::mat rot1_2;
-  arma::mat rot2_2;
-  arma::mat rot3_2;
-  
+   
   //cholesky factors about here
   arma::mat cholesky_factor_1 = givensQ_fast(theta(0:2),K);
   arma::mat cholesky_factor_2 = givensQ_fast(theta(3:5),K);
