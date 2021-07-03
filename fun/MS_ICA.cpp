@@ -62,7 +62,7 @@ NumericVector kdensity(arma::vec r)
 
 // Log-Likelihood function
 // [[Rcpp::export]]
-double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C) 
+double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec & init) 
 {
   
   int K = r.n_cols;
@@ -80,8 +80,8 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C)
   }
   
   //initial state
-  double p1t = 0.5;
-  double p2t = 0.5;
+  double p1t = init(0);
+  double p2t = init(1);
   
   // rotation matrices
   arma::mat Q_1 = givensQ_fast(theta.subvec(0, 2), K);
@@ -115,7 +115,58 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C)
 
     llv-=log(llv_temp);
 
-
   }
   return llv;
+}
+
+// filter
+// [[Rcpp::export]]
+arma::mat filter_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec & init) 
+{
+  int NoOBs = r.n_rows;
+  
+  //Switching Probabilities
+  double p11 = theta(6);
+  double p12 = 1-p11;
+  double p22 = theta(7);
+  double p21 = 1-p22;
+  
+  //initial state
+  double p1t = init(0);
+  double p2t = init(1);
+  
+  arma::mat Out(NoOBs, 2);
+  Out.row(0) = {p1t, p2t};
+  
+  //transform series 
+  arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();
+  arma::mat series_state2 = arma::inv(getB(theta.subvec(3, 5), C))*r.t();
+  
+  //KDE for the first state
+  arma::vec dens_1_1= kdensity(series_state1.row(0).t());
+  arma::vec dens_2_1= kdensity(series_state1.row(1).t());
+  arma::vec dens_3_1= kdensity(series_state1.row(2).t());
+  
+  //KDE for the first state
+  arma::vec dens_1_2= kdensity(series_state2.row(0).t());
+  arma::vec dens_2_2= kdensity(series_state2.row(1).t());
+  arma::vec dens_3_2= kdensity(series_state2.row(2).t());
+  
+  //double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) ));
+  
+  for (int i = 1; i < NoOBs; i++) {
+    
+    
+    double llv_temp1 = arma::as_scalar((p1t*p11+p2t*p21)*dens_1_1(i)*dens_2_1(i)*dens_3_1(i));
+    double llv_temp2 = arma::as_scalar((p1t*p12+p2t*p22)*dens_1_2(i)*dens_2_2(i)*dens_3_2(i));
+    
+    double llv_temp = arma::as_scalar(llv_temp1+llv_temp2);
+    p1t = llv_temp1/llv_temp;
+    p2t = llv_temp2/llv_temp;
+    
+    Out.row(i) = {p1t, p2t};
+    //llv-=log(llv_temp);
+    
+  }
+  return Out;
 }
