@@ -1,19 +1,20 @@
+#include <RcppArmadillo.h>
+
+// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::plugins("cpp11")]]
 
 // Log-Likelihood function
-
 // [[Rcpp::export]]
 double loglike_MS_ICA(const arma::vec& theta, const arma::mat& r, const arma::mat& C) {
  {
   
 
- \\ dimensions
+ // dimensions
   int K = r.n_cols;
   
   // Length of each series
   int NoOBs = r.n_rows;
   //rotation angles
-
-  /
 
   //Switching Probabilities
   double p11 = theta(6);

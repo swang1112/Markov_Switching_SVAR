@@ -24,6 +24,7 @@ arma::imat choose2_fast(int &N)
 }
 
 // Givens rotation
+// [[Rcpp::export]]
 arma::mat givensQ_fast(arma::vec &thetas, int K)
 {
   arma::mat Out = arma::eye(K, K);
@@ -41,7 +42,8 @@ arma::mat givensQ_fast(arma::vec &thetas, int K)
   return Out.t();
 }
 
-NumericVector kdensity(arma::vec r){
+NumericVector kdensity(arma::vec r)
+{
   Environment pkg = Rcpp::Environment::namespace_env("kdensity");
   Function f = pkg["kdensity"];
   Function res =f(r);
@@ -50,19 +52,14 @@ NumericVector kdensity(arma::vec r){
 }
 
 // Log-Likelihood function
-
 // [[Rcpp::export]]
-double loglike_MS_ICA(const arma::vec& theta, const arma::mat& r, const arma::mat& C) {
- {
+double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C) 
+{
   
-
- \\ dimensions
   int K = r.n_cols;
-  
-  // Length of each series
   int NoOBs = r.n_rows;
+  
   //rotation angles
-
   //state 1
   double delta_1_1=theta(0);
   double delta_2_1=theta(1);
@@ -78,18 +75,13 @@ double loglike_MS_ICA(const arma::vec& theta, const arma::mat& r, const arma::ma
   double p22 = theta(7);
   double p21 = 1-p22;
 
-  //check for identification (we might not need this)
-  if(p11<=0 || p11>=1 || p22<=0 || p22>= 1){
-    return -1e25;
-  }
-
   //initial state
   double p1t = 1/2;
   double p2t = 1/2;
   
   // rotation matrices
-  arma::mat Q_1 = givensQ_fast(theta(0:2),K);
-  arma::mat Q_2 = givensQ_fast(theta(3:5),K);
+  arma::mat Q_1 = givensQ_fast(theta.subvec(0,2), K);
+  arma::mat Q_2 = givensQ_fast(theta.subvec(3,5), K);
   
   //transform series (B = CQ)
   arma::mat series_state1 = arma::inv(C * Q_1)*r.t();
