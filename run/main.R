@@ -48,12 +48,14 @@ U = make_dat(0, Tob = Tob, dof = dof, B = B)
 # calculate kernel log likelihood at true theta ---------------------------
 get_kl0(theta, u = U, C = C)
 kl_fast(theta, u = U, C = C)
+kl_fast2D(theta, u = U, C = C)
 
 
 
 # compare speed -----------------------------------------------------------
 bench = microbenchmark::microbenchmark("R" = get_kl0(theta, u = U, C = C),
-                            "Rcpp" = kl_fast(theta, u = U, C = C), 
+                            "Rcpp1" = kl_fast(theta, u = U, C = C), 
+                            "Rcpp2" = kl_fast2D(theta, u = U, C = C), 
                             times = 100)
 require(ggfortify)
 bench %>% autoplot

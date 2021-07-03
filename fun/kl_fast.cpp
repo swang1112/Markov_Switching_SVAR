@@ -65,3 +65,48 @@ double kl_fast(arma::vec & theta, arma::mat & u,  arma::mat & C)
   return out;
 }
 
+// kernel likelihood: L(theta) for bivariate model
+// [[Rcpp::export]]
+double kl_fast2D(double & theta, arma::mat & u,  arma::mat & C)
+{
+  // K = 2
+  arma::mat Q = arma::mat(2,2);
+  Q(0, 0) = cos(theta);
+  Q(1, 1) = cos(theta);
+  Q(0, 1) = -sin(theta);
+  Q(1, 0) = sin(theta);
+  
+  arma::mat E = arma::inv(C * Q) * u.t();
+  double out = 0;
+  for (int i = 0; i < 2; i++)
+  {
+    out = out + sum(log(kdensity(E.row(i).t())));
+  }
+  return out;
+}
+
+// kernel likelihood: L(theta) for trivariate model
+// [[Rcpp::export]]
+double kl_fast3D(arma::vec & theta, arma::mat & u,  arma::mat & C)
+{
+  
+  // K = 3
+  arma::mat Q = arma::eye(3, 3);
+  for (int i = 0; i < 3; i++)
+  {
+    arma::mat temp = arma::eye(3, 3);
+    temp(0, 0) = cos(theta(i));
+    temp(1, 1) = cos(theta(i));
+    temp(0, 1) = -sin(theta(i));
+    temp(1, 0) = sin(theta(i));
+    Q = Q * temp;
+  }
+  arma::mat E = arma::inv(C * Q) * u.t();
+  double out = 0;
+  for (int i = 0; i < 3; i++)
+  {
+    out = out + sum(log(kdensity(E.row(i).t())));
+  }
+  return out;
+}
+
