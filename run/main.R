@@ -12,7 +12,7 @@ Core = 108
 Sig = crossprod(u)/(var3$obs - 3 * var3$p - 1)
 C   = Sig %>% chol %>% t
 
-grid_prob  = seq(0, 1, by = 0.1) 
+grid_prob  = seq(0, 1, by = 0.01) 
 start_prob = expand.grid(grid_prob, grid_prob) %>% as.matrix()
 startpars = list()
 for (i in 1:nrow(start_prob)) {
@@ -23,12 +23,12 @@ for (i in 1:nrow(start_prob)) {
 #loglike_MS_ICA(startpars[[109]], r = u, C = C, init = c(.5, .5))
 
 erg_list = pblapply(startpars, optim, fn = loglike_MS_ICA, r = u, C = C, init = c(.5, .5), cl = Core)
-saveRDS(erg_list, '../out/a_grid.rds')
+saveRDS(erg_list, '../out/a_grid_fein.rds')
 
 end_time = Sys.time()
 elapsed_time = difftime(end_time, start_time)
 Journal = data.frame(start_time, end_time, elapsed_time)
-write.csv(Journal, "../out/erg_list.csv")
+write.csv(Journal, "../out/erg_list_fein.csv")
 
 # erg_list = optim(startpars,fn = loglike_MS_ICA, r = u, C = C, init = c(.5, .5))
 # erg_list$value
