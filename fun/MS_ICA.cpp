@@ -24,8 +24,7 @@ arma::imat choose2_fast(int &N)
 }
 
 // Givens rotation
-// [[Rcpp::export]]
-arma::mat givensQ_fast(arma::vec &thetas, int K)
+arma::mat givensQ_fast(arma::vec thetas, int K)
 {
   arma::mat Out = arma::eye(K, K);
   arma::imat Cmat = choose2_fast(K);
@@ -42,6 +41,16 @@ arma::mat givensQ_fast(arma::vec &thetas, int K)
   return Out.t();
 }
 
+// get mixing matrix
+// [[Rcpp::export]]
+arma::mat getB(arma::vec thetas, arma::mat& C)
+{
+  int K = C.n_cols;
+  arma::mat Q = givensQ_fast(thetas, K);
+  return C * Q;
+}
+
+// kernel density estimation
 NumericVector kdensity(arma::vec r)
 {
   Environment pkg = Rcpp::Environment::namespace_env("kdensity");
@@ -58,16 +67,6 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C)
   
   int K = r.n_cols;
   int NoOBs = r.n_rows;
-  
-  //rotation angles
-  //state 1
-  double delta_1_1=theta(0);
-  double delta_2_1=theta(1);
-  double delta_3_1=theta(2);
-  //state 2
-  double delta_1_2=theta(3);
-  double delta_2_2=theta(4);
-  double delta_3_2=theta(5);
 
   //Switching Probabilities
   double p11 = theta(6);
@@ -75,30 +74,34 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C)
   double p22 = theta(7);
   double p21 = 1-p22;
 
+  //check for identification 
+  if(p11<=0 || p11>=1 || p22<=0 || p22>= 1){
+    return 1e25;
+  }
+  
   //initial state
-  double p1t = 1/2;
-  double p2t = 1/2;
+  double p1t = 0.5;
+  double p2t = 0.5;
   
   // rotation matrices
-  arma::mat Q_1 = givensQ_fast(theta.subvec(0,2), K);
-  arma::mat Q_2 = givensQ_fast(theta.subvec(3,5), K);
+  arma::mat Q_1 = givensQ_fast(theta.subvec(0, 2), K);
+  arma::mat Q_2 = givensQ_fast(theta.subvec(3, 5), K);
   
   //transform series (B = CQ)
   arma::mat series_state1 = arma::inv(C * Q_1)*r.t();
   arma::mat series_state2 = arma::inv(C * Q_2)*r.t();
   
   //KDE for the first state
-  arma::vec dens_1_1= kdensity(*series_state1.row(0).t());
-  arma::vec dens_2_1= kdensity(*series_state1.row(1).t());
-  arma::vec dens_3_1= kdensity(*series_state1.row(2).t());
+  arma::vec dens_1_1= kdensity(series_state1.row(0).t());
+  arma::vec dens_2_1= kdensity(series_state1.row(1).t());
+  arma::vec dens_3_1= kdensity(series_state1.row(2).t());
   
   //KDE for the first state
-  arma::vec dens_1_2= kdensity(*series_state2.row(0).t());
-  arma::vec dens_2_2= kdensity(*series_state2.row(1).t());
-  arma::vec dens_3_2= kdensity(*series_state2.row(2).t());
+  arma::vec dens_1_2= kdensity(series_state2.row(0).t());
+  arma::vec dens_2_2= kdensity(series_state2.row(1).t());
+  arma::vec dens_3_2= kdensity(series_state2.row(2).t());
 
-  double llv = log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) ));
-
+  double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) ));
 
   for (int i = 1; i < NoOBs; i++) {
     
@@ -110,7 +113,7 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C)
     p1t = llv_temp1/llv_temp;
     p2t = llv_temp2/llv_temp;
 
-    llv+=log(llv_temp);
+    llv-=log(llv_temp);
 
 
   }
