@@ -56,14 +56,14 @@ double loglike_MS_ICA(const arma::vec& theta, const arma::mat& r, const arma::ma
   arma::mat series_state2 = arma::inv(C * cholesky_factor_2)*r.t();
   
   //KDE for the first state
-  arma::vec dens_1_1= kdensity(*series_state1.col(0).t());
-  arma::vec dens_2_1= kdensity(*series_state1.col(1).t());
-  arma::vec dens_3_1= kdensity(*series_state1.col(2).t());
+  arma::vec dens_1_1= kdensity(series_state1.row(0).t());
+  arma::vec dens_2_1= kdensity(series_state1.row(1).t());
+  arma::vec dens_3_1= kdensity(series_state1.row(2).t());
   
   //KDE for the first state
-  arma::vec dens_1_2= kdensity(*series_state2.col(0).t());
-  arma::vec dens_2_2= kdensity(*series_state2.col(1).t());
-  arma::vec dens_3_2= kdensity(*series_state2.col(2).t());
+  arma::vec dens_1_2= kdensity(series_state2.row(0).t());
+  arma::vec dens_2_2= kdensity(series_state2.row(1).t());
+  arma::vec dens_3_2= kdensity(series_state2.row(2).t());
   
 
 
