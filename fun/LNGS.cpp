@@ -22,9 +22,9 @@ double loglike_Normal_Gumbel_GumbelSurvival(const arma::vec& theta, const arma::
   double delta_3_2=theta(5);
 
   //Switching Probabilities
-  double p11 = theta[6];
+  double p11 = theta(6);
   double p12 = 1-p11;
-  double p22 = theta[7];
+  double p22 = theta(7);
   double p21 = 1-p22;
 
   //check for identification (we might not need this)
