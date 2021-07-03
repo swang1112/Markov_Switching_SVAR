@@ -85,7 +85,8 @@ double kl_fast2D(double & theta, arma::mat & u,  arma::mat & C)
   return out;
 }
 
-// kernel likelihood: L(theta) for trivariate model
+/*
+// kernel likelihood: L(theta) for trivariate model (tbd)
 // [[Rcpp::export]]
 double kl_fast3D(arma::vec & theta, arma::mat & u,  arma::mat & C)
 {
@@ -109,4 +110,4 @@ double kl_fast3D(arma::vec & theta, arma::mat & u,  arma::mat & C)
   }
   return out;
 }
-
+*/
