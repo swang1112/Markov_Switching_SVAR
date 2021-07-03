@@ -1,15 +1,16 @@
 
-//ich passe das hier noch an
-// [[Rcpp::export]]
-double loglike_Normal_Gumbel_GumbelSurvival(const arma::vec& theta, const arma::mat& r) {
- {
-  // Log-Likelihood function
+// Log-Likelihood function
 
-  // convert to matrices
-  int n = r.n_cols;
+// [[Rcpp::export]]
+double loglike_MS_ICA(const arma::vec& theta, const arma::mat& r, const arma::mat& C) {
+ {
+  
+
+ \\ dimensions
+  int K = r.n_cols;
+  
   // Length of each series
   int NoOBs = r.n_rows;
-  int numb_of_vars = 2 * pow(n, 2) + n * (n + 1)/2;
   //rotation angles
 
   //state 1
@@ -33,7 +34,6 @@ double loglike_Normal_Gumbel_GumbelSurvival(const arma::vec& theta, const arma::
   }
 
 
-
   //initial state
   double p1t = 1/2;
   double p2t = 1/2;
@@ -48,17 +48,12 @@ double loglike_Normal_Gumbel_GumbelSurvival(const arma::vec& theta, const arma::
   arma::mat rot3_2;
   
   //cholesky factors about here
-  arma::mat cholesky_factor_1_1 = arma::chol(rot1_1);
-  arma::mat cholesky_factor_2_1 = arma::chol(rot2_1);
-  arma::mat cholesky_factor_3_1 = arma::chol(rot3_1);
-  
-  arma::mat cholesky_factor_1_2 = arma::chol(rot1_2);
-  arma::mat cholesky_factor_2_2 = arma::chol(rot2_2);
-  arma::mat cholesky_factor_3_2 = arma::chol(rot3_2); 
+  arma::mat cholesky_factor_1 = givensQ_fast(theta(0:2),K);
+  arma::mat cholesky_factor_2 = givensQ_fast(theta(3:5),K);
   
   //transform series (Hier fehlt noch die B Matrix)
-  arma::mat series_state1 = cholesky_factor_1_1 * cholesky_factor_2_1 * cholesky_factor_3_1 *r;
-  arma::mat series_state2 = cholesky_factor_1_2 * cholesky_factor_2_2 * cholesky_factor_3_2 *r;
+  arma::mat series_state1 = arma::inv(C * cholesky_factor_1)*r.t();
+  arma::mat series_state2 = arma::inv(C * cholesky_factor_2)*r.t();
   
   //KDE for the first state
   arma::vec dens_1_1= kdensity(*series_state1.col(0).t());
