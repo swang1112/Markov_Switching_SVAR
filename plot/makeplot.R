@@ -46,8 +46,8 @@ B2
 # IRF ---------------------------------------------------------------------
 Rcpp::sourceCpp('../fun/IRF.cpp')
 source('../fun/trans_irf.R')
-irf_1 = IRF_fast(Bcoef, B1, 20) %>% trans_irf 
-irf_2 = IRF_fast(Bcoef, B2, 20) %>% trans_irf 
+irf_1 = IRF_fast(Bcoef, B1, 36) %>% trans_irf 
+irf_2 = IRF_fast(Bcoef, B2, 36) %>% trans_irf 
 
 ip1 = irf_1 %>% plot_irf() + ggtitle('state1')
 ip2 = irf_2 %>% plot_irf() + ggtitle('state2')
