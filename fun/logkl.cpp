@@ -1,4 +1,5 @@
 #include <RcppArmadillo.h>
+#include <omp.h>
 #include <typeinfo>
 
 // [[Rcpp::depends(RcppArmadillo)]]
@@ -18,18 +19,17 @@ NumericVector kdensity(arma::vec r)
 
 // negative Log Kernel Likelihood
 // [[Rcpp::export]]
-double log_eps( arma::vec& eps) 
+double nlkl_eps( arma::mat& eps) 
 {
   
   int K = eps.n_cols;
-
+  
   double llv = 0.00;
-
-  for (int i = 0; i < K; i++)
+  #pragma omp parallel for shared(llv, eps) reduction(-: llv)
+  for (int k = 0; k < K; k++)
   {
-   llv-=log(kdensity(eps.col(i)));
+    llv-=sum(log(kdensity(eps.col(k))));
   }
 
   return llv;
 }
-
