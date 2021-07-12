@@ -136,7 +136,7 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec
 double loglike_MS_ICA_M3( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec & init) 
 {
   
-  int K = r.n_cols;
+  //int K = r.n_cols;
   int NoOBs = r.n_rows;
   
   //Switching Probabilities
