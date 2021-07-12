@@ -4,7 +4,10 @@ rm(list = ls())
 library(magrittr)
 library(kdensity)
 Rcpp::sourceCpp('../fun/kl_fast.cpp')
-
+# Rcpp::sourceCpp('../fun/foo.cpp')
+# fa = runif(6,0,1)
+# fa
+# getMarkov(fa)
 
 # fun ---------------------------------------------------------------------
 # this function simulates unobserved independent component from 
