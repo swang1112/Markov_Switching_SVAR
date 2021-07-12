@@ -85,6 +85,31 @@ double kl_fast2D(double & theta, arma::mat & u,  arma::mat & C)
   return out;
 }
 
+
+// Gaussian kernel density estimation at point x
+// [[Rcpp::export]]
+double kl_gauss(double &x, arma::vec & X, int & Tob, double &h)
+{
+  arma::vec x_vec(Tob);
+  x_vec.fill(x);
+  arma::vec t = x_vec - X;
+  arma::vec out = arma::exp(arma::pow(t/h, 2) * (-0.5)) / sqrt(2*3.14159265358979323846);
+  return arma::accu(out)/(Tob*h);
+}
+
+// SUPER FAST!!
+// Gaussian kernel density estimation at all points in X
+// [[Rcpp::export]]
+arma::vec kl_gauss_vec(arma::vec  X, int & Tob, double &h)
+{
+  arma::vec out(Tob);
+  for (int i = 0; i < Tob; i++)
+  {
+    out(i) = kl_gauss(X(i), X, Tob, h);
+  }
+  return out;
+}
+
 /*
 // kernel likelihood: L(theta) for trivariate model (tbd)
 // [[Rcpp::export]]

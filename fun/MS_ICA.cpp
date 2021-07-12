@@ -61,15 +61,25 @@ arma::mat getMarkov(arma::vec & thetas)
 }
 
 
-
-// kernel density estimation
-NumericVector kdensity(arma::vec r)
+// Gaussian kernel density estimation at point x
+double kl_gauss(double &x, arma::vec & X, int & Tob, double &h)
 {
-  Environment pkg = Rcpp::Environment::namespace_env("kdensity");
-  Function f = pkg["kdensity"];
-  Function res =f(r);
-  NumericVector density_res=res(r);
-  return density_res;
+  arma::vec x_vec(Tob);
+  x_vec.fill(x);
+  arma::vec t = x_vec - X;
+  arma::vec out = arma::exp(arma::pow(t/h, 2) * (-0.5)) / sqrt(2*3.14159265358979323846);
+  return arma::accu(out)/(Tob*h);
+}
+
+// Gaussian kernel density estimation at all points in X
+arma::vec kl_gauss_vec(arma::vec  X, int & Tob, double &h)
+{
+  arma::vec out(Tob);
+  for (int i = 0; i < Tob; i++)
+  {
+    out(i) = kl_gauss(X(i), X, Tob, h);
+  }
+  return out;
 }
 
 // Log-Likelihood function
@@ -103,15 +113,17 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec
   arma::mat series_state1 = arma::inv(C * Q_1)*r.t();
   arma::mat series_state2 = arma::inv(C * Q_2)*r.t();
   
+  double bw = (4/(3*NoOBs))^(1/5);
+
   //KDE for the first state
-  arma::vec dens_1_1= kdensity(series_state1.row(0).t());
-  arma::vec dens_2_1= kdensity(series_state1.row(1).t());
-  arma::vec dens_3_1= kdensity(series_state1.row(2).t());
+  arma::vec dens_1_1= kl_gauss_vec(series_state1.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_1= kl_gauss_vec(series_state1.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_1= kl_gauss_vec(series_state1.row(2).t(), NoOBs, bw);
   
   //KDE for the first state
-  arma::vec dens_1_2= kdensity(series_state2.row(0).t());
-  arma::vec dens_2_2= kdensity(series_state2.row(1).t());
-  arma::vec dens_3_2= kdensity(series_state2.row(2).t());
+  arma::vec dens_1_2= kl_gauss_vec(series_state2.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_2= kl_gauss_vec(series_state2.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_2= kl_gauss_vec(series_state2.row(2).t(), NoOBs, bw);
 
   double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) ));
 
@@ -153,25 +165,27 @@ double loglike_MS_ICA_M3( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::
   double p2t = init(1);
   double p3t = init(2);
   
+  double bw = (4/(3*NoOBs))^(1/5);
+
   //transform series 
   arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();
   arma::mat series_state2 = arma::inv(getB(theta.subvec(3, 5), C))*r.t();
   arma::mat series_state3 = arma::inv(getB(theta.subvec(6, 8), C))*r.t();
   
   //KDE for the first state
-  arma::vec dens_1_1= kdensity(series_state1.row(0).t());
-  arma::vec dens_2_1= kdensity(series_state1.row(1).t());
-  arma::vec dens_3_1= kdensity(series_state1.row(2).t());
+  arma::vec dens_1_1= kl_gauss_vec(series_state1.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_1= kl_gauss_vec(series_state1.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_1= kl_gauss_vec(series_state1.row(2).t(), NoOBs, bw);
   
   //KDE for the first state
-  arma::vec dens_1_2= kdensity(series_state2.row(0).t());
-  arma::vec dens_2_2= kdensity(series_state2.row(1).t());
-  arma::vec dens_3_2= kdensity(series_state2.row(2).t());
+  arma::vec dens_1_2= kl_gauss_vec(series_state2.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_2= kl_gauss_vec(series_state2.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_2= kl_gauss_vec(series_state2.row(2).t(), NoOBs, bw);
   
   //KDE for the third state
-  arma::vec dens_1_3= kdensity(series_state3.row(0).t());
-  arma::vec dens_2_3= kdensity(series_state3.row(1).t());
-  arma::vec dens_3_3= kdensity(series_state3.row(2).t());
+  arma::vec dens_1_3= kl_gauss_vec(series_state3.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_3= kl_gauss_vec(series_state3.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_3= kl_gauss_vec(series_state3.row(2).t(), NoOBs, bw);
   
   double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + 
                                     p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) + 
@@ -218,15 +232,15 @@ arma::mat filter_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::v
   arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();
   arma::mat series_state2 = arma::inv(getB(theta.subvec(3, 5), C))*r.t();
   
-  //KDE for the first state
-  arma::vec dens_1_1= kdensity(series_state1.row(0).t());
-  arma::vec dens_2_1= kdensity(series_state1.row(1).t());
-  arma::vec dens_3_1= kdensity(series_state1.row(2).t());
+ //KDE for the first state
+  arma::vec dens_1_1= kl_gauss_vec(series_state1.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_1= kl_gauss_vec(series_state1.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_1= kl_gauss_vec(series_state1.row(2).t(), NoOBs, bw);
   
   //KDE for the first state
-  arma::vec dens_1_2= kdensity(series_state2.row(0).t());
-  arma::vec dens_2_2= kdensity(series_state2.row(1).t());
-  arma::vec dens_3_2= kdensity(series_state2.row(2).t());
+  arma::vec dens_1_2= kl_gauss_vec(series_state2.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_2= kl_gauss_vec(series_state2.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_2= kl_gauss_vec(series_state2.row(2).t(), NoOBs, bw);
   
   //double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) ));
   
