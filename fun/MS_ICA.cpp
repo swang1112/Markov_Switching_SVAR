@@ -50,6 +50,18 @@ arma::mat getB(arma::vec thetas, arma::mat& C)
   return C * Q;
 }
 
+// get markov matrix
+arma::mat getMarkov(arma::vec & thetas)
+{
+  arma::mat Out(3,3);
+  Out.row(0) = {1-thetas(0)-thetas(1), thetas(0), thetas(1)};
+  Out.row(1) = {thetas(2), 1-thetas(2)-thetas(3), thetas(3)};
+  Out.row(2) = {thetas(4), thetas(5), 1-thetas(4)-thetas(5)};
+  return Out;
+}
+
+
+
 // kernel density estimation
 NumericVector kdensity(arma::vec r)
 {
@@ -115,6 +127,70 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec
 
     llv-=log(llv_temp);
 
+  }
+  return llv;
+}
+
+// Log-Likelihood function
+// [[Rcpp::export]]
+double loglike_MS_ICA_M3( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec & init) 
+{
+  
+  int K = r.n_cols;
+  int NoOBs = r.n_rows;
+  
+  //Switching Probabilities
+  arma::vec lamb = theta.subvec(9, 14);
+  arma::mat P    = getMarkov(lamb);
+  
+  //check for identification 
+  if(!arma::all(arma::all(P > 0  && P < 1)) ){
+    return 1e25;
+  }
+  
+  //initial state
+  double p1t = init(0);
+  double p2t = init(1);
+  double p3t = init(2);
+  
+  //transform series 
+  arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();
+  arma::mat series_state2 = arma::inv(getB(theta.subvec(3, 5), C))*r.t();
+  arma::mat series_state3 = arma::inv(getB(theta.subvec(6, 8), C))*r.t();
+  
+  //KDE for the first state
+  arma::vec dens_1_1= kdensity(series_state1.row(0).t());
+  arma::vec dens_2_1= kdensity(series_state1.row(1).t());
+  arma::vec dens_3_1= kdensity(series_state1.row(2).t());
+  
+  //KDE for the first state
+  arma::vec dens_1_2= kdensity(series_state2.row(0).t());
+  arma::vec dens_2_2= kdensity(series_state2.row(1).t());
+  arma::vec dens_3_2= kdensity(series_state2.row(2).t());
+  
+  //KDE for the third state
+  arma::vec dens_1_3= kdensity(series_state3.row(0).t());
+  arma::vec dens_2_3= kdensity(series_state3.row(1).t());
+  arma::vec dens_3_3= kdensity(series_state3.row(2).t());
+  
+  double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + 
+                                    p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) + 
+                                    p3t* dens_1_3(0)*dens_2_3(0)*dens_3_3(0) ));
+  
+  for (int i = 1; i < NoOBs; i++) {
+    
+    
+    double llv_temp1 = arma::as_scalar((p1t*P(0,0)+p2t*P(1,0)+p3t*P(2,0))*dens_1_1(i)*dens_2_1(i)*dens_3_1(i));
+    double llv_temp2 = arma::as_scalar((p1t*P(0,1)+p2t*P(1,1)+p3t*P(2,1))*dens_1_2(i)*dens_2_2(i)*dens_3_2(i));
+    double llv_temp3 = arma::as_scalar((p1t*P(0,2)+p2t*P(1,2)+p3t*P(2,2))*dens_1_3(i)*dens_2_3(i)*dens_3_3(i));
+    
+    double llv_temp = arma::as_scalar(llv_temp1+llv_temp2+llv_temp3);
+    p1t = llv_temp1/llv_temp;
+    p2t = llv_temp2/llv_temp;
+    p3t = llv_temp3/llv_temp;
+    
+    llv-=log(llv_temp);
+    
   }
   return llv;
 }
