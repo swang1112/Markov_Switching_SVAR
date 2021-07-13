@@ -45,7 +45,8 @@ double nlkl_eps( arma::mat& eps)
   #pragma omp parallel for shared(llv, eps) reduction(-: llv)
   for (int k = 0; k < K; k++)
   {
-    llv-=sum(log(kl_gauss_vec(eps.col(k), Tob, bw)));
+    //llv-=sum(log(kl_gauss_vec(eps.col(k), Tob, bw)));
+    llv-=arma::accu(arma::log(kl_gauss_vec(eps.col(k), Tob, bw)));
   }
 
   return llv;
