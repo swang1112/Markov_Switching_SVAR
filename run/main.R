@@ -3,14 +3,15 @@ library(magrittr)
 library(kdensity)
 library(pbapply)
 source('reduced_form.R')
-Rcpp::sourceCpp('../fun/MS_ICA.cpp')
+
 start_time = Sys.time()
 
 # \beginn{config} ---------------------------------------------------------
-M     = 3
+M     = 1
 Core  = 108
 # \end{config} ------------------------------------------------------------
 
+if (M == 1) Rcpp::sourceCpp('../fun/Kernel_ICA.cpp') else Rcpp::sourceCpp('../fun/MS_ICA.cpp')
 
 Nrot  = choose(3,2)*M
 
@@ -22,6 +23,7 @@ if (M == 2){
   grid_prob  = seq(0, 1, by = 0.01) 
   start_prob = expand.grid(grid_prob, grid_prob) %>% as.matrix()
   startpars = list()
+  set.seed(1234)
   for (i in 1:nrow(start_prob)) {
     startpars[[i]] = c(runif(Nrot, 0, pi/2), start_prob[i,])
   }
@@ -33,12 +35,20 @@ if (M == 2){
   grid_prob  = seq(0, 0.6, by = 0.1) 
   start_prob = expand.grid(grid_prob, grid_prob, grid_prob, grid_prob, grid_prob, grid_prob) %>% as.matrix()
   startpars = list()
+  set.seed(1234)
   for (i in 1:nrow(start_prob)) {
     startpars[[i]] = c(runif(Nrot, 0, pi/2), start_prob[i,])
   }
   # run
   erg_list = pblapply(startpars, optim, fn = loglike_MS_ICA_M3, r = u, C = C, init = c(1/3, 1/3, 1/3), cl = Core)
   saveRDS(erg_list, '../out/a_M3.rds')
+} else if (M == 1){
+  set.seed(1234)
+  startpars = runif(Nrot, 0, pi/2)
+  Rcpp::sourceCpp('../fun/Kernel_ICA.cpp')
+  fast_kernel_ICA(startpars, u, C)
+  erg = optim(startpars, fn = fast_kernel_ICA, u = u, C = C)
+  saveRDS(erg, '../out/a_M1.rds')
 }
 
 
