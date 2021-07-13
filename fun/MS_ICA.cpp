@@ -82,6 +82,7 @@ arma::vec kl_gauss_vec(arma::vec  X, int & Tob, double &h)
   return out;
 }
 
+
 // Log-Likelihood function
 // [[Rcpp::export]]
 double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec & init) 
@@ -227,6 +228,8 @@ arma::mat filter_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::v
   
   arma::mat Out(NoOBs, 2);
   Out.row(0) = {p1t, p2t};
+  
+  double bw = pow(4.0/(3.0*NoOBs), 0.2);
   
   //transform series 
   arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();
