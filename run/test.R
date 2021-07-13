@@ -47,12 +47,11 @@ B     = C %*% Q
 
 U = make_dat(0, Tob = Tob, dof = dof, B = B)
 
-
+Rcpp::sourceCpp('../fun/kl_fast.cpp')
 # calculate kernel log likelihood at true theta ---------------------------
 get_kl0(theta, u = U, C = C)
 kl_fast(theta, u = U, C = C)
 kl_fast2D(theta, u = U, C = C)
-
 
 
 # compare speed -----------------------------------------------------------

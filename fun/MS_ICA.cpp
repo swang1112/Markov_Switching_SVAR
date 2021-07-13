@@ -113,7 +113,7 @@ double loglike_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec
   arma::mat series_state1 = arma::inv(C * Q_1)*r.t();
   arma::mat series_state2 = arma::inv(C * Q_2)*r.t();
   
-  double bw = (4/(3*NoOBs))^(1/5);
+  double bw = pow(4.0/(3.0*NoOBs), 0.2);
 
   //KDE for the first state
   arma::vec dens_1_1= kl_gauss_vec(series_state1.row(0).t(), NoOBs, bw);
@@ -165,7 +165,7 @@ double loglike_MS_ICA_M3( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::
   double p2t = init(1);
   double p3t = init(2);
   
-  double bw = (4/(3*NoOBs))^(1/5);
+  double bw = pow(4.0/(3.0*NoOBs), 0.2);
 
   //transform series 
   arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();

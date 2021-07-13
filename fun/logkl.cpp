@@ -38,8 +38,8 @@ double nlkl_eps( arma::mat& eps)
 {
   
   int K     = eps.n_cols;
-  int Tob   = eps.u.n_rows;
-  double bw = (4/(3*Tob))^(1/5);
+  int Tob   = eps.n_rows;
+  double bw = pow(4.0/(3.0*Tob), 0.2);
 
   double llv = 0.00;
   #pragma omp parallel for shared(llv, eps) reduction(-: llv)
