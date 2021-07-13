@@ -30,10 +30,10 @@ dev.off()
 # structural multiplier ---------------------------------------------------
 theta_optim1 = par_optim[1:3]
 theta_optim2 = par_optim[4:6]
-(B1 = getB(theta_optim1, u %>% cov %>% chol %>% t))
-(B2 = getB(theta_optim2, u %>% cov %>% chol %>% t))
+(B1 = getB(theta_optim1, C))
+(B2 = getB(theta_optim2, C))
 
-# variable(oil supply, aggregate demand, oil stock demand)
+# shock(oil supply, aggregate demand, oil stock demand)
 B1 = B1[,c(2,3,1)]; 
 B1[,1] = B1[,1]*-1
 B1 
