@@ -95,4 +95,33 @@ double fast_kernel_ICA(arma::vec& par,  arma::mat& u,  arma::mat& C)
   return llv;
 }
 
+NumericVector kdensity(arma::vec r){
+  Environment pkg = Rcpp::Environment::namespace_env("kdensity");
+  Function f = pkg["kdensity"];
+  Function res =f(r);
+  NumericVector density_res=res(r);
+  return density_res;
+}
+
+// Negative Log-Likelihood function (old)
+// [[Rcpp::export]]
+double Jaki_kernel_ICA(arma::vec& par,  arma::mat& u,  arma::mat& C) 
+{
+  
+  int K     = u.n_cols;
+  
+  arma::mat B   = getB(par, C);
+  arma::mat eps = arma::inv(B) * u.t();
+  eps = eps.t();
+  
+  double llv = 0.00;
+  #pragma omp parallel for shared(llv, eps) reduction(-: llv)
+  for (int k = 0; k < K; k++)
+  {
+    llv-=sum(log(kdensity(eps.col(k))));
+  }
+  
+  return llv;
+}
+
 
