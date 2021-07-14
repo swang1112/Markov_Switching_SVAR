@@ -1,6 +1,5 @@
 rm(list = ls())
 library(magrittr)
-library(kdensity)
 library(pbapply)
 source('reduced_form.R')
 
@@ -9,9 +8,11 @@ start_time = Sys.time()
 # \beginn{config} ---------------------------------------------------------
 M     = 1
 Core  = 108
+Jaki  = TRUE
 # \end{config} ------------------------------------------------------------
 
 if (M == 1) Rcpp::sourceCpp('../fun/Kernel_ICA.cpp') else Rcpp::sourceCpp('../fun/MS_ICA.cpp')
+if (Jaki) require(kdensity)
 
 Nrot  = choose(3,2)*M
 
@@ -44,11 +45,22 @@ if (M == 2){
   saveRDS(erg_list, '../out/a_M3.rds')
 } else if (M == 1){
   set.seed(1234)
-  startpars = runif(Nrot, 0, pi/2)
-  Rcpp::sourceCpp('../fun/Kernel_ICA.cpp')
-  fast_kernel_ICA(startpars, u, C)
-  erg = optim(startpars, fn = fast_kernel_ICA, u = u, C = C)
-  saveRDS(erg, '../out/a_M1.rds')
+  Start_N = 100
+  startpars = list()
+  for (i in 1:Start_N) {
+    startpars[[i]] = runif(Nrot, 0, pi/2)
+  }
+  if (Jaki) {
+    erg_list = pblapply(startpars, optim, fn = Jaki_kernel_ICA, u = u, C = C,
+                        control = list(maxit = 25000, tmax = 100, abstol = 1e-30), 
+                        cl = 7)
+    saveRDS(erg_list, '../out/a_M1_Jaki.rds')
+  } else {
+    erg_list = pblapply(startpars, optim, fn = fast_kernel_ICA, u = u, C = C,
+                      control = list(maxit = 25000, tmax = 100, abstol = 1e-30), 
+                      cl = 7)
+    saveRDS(erg_list, '../out/a_M1.rds')
+  }
 }
 
 
