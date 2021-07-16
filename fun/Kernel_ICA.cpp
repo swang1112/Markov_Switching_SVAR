@@ -38,7 +38,7 @@ arma::mat givensQ_fast(arma::vec thetas, int K)
     
     Out = Out * temp;
   }
-  return Out.t();
+  return Out;
 }
 
 // get mixing matrix
