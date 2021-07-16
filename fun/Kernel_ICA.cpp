@@ -71,6 +71,37 @@ arma::vec kl_gauss_vec(arma::vec  X, int & Tob, double &h)
   return out;
 }
 
+// Multivariate Gaussian kernel density estimation at vector x (K x 1)
+// variables must be orthogonal and have homogeneous 2nd moment
+// data matrix X is (Tob X K)
+// [[Rcpp::export]]
+double Mkl_gauss(arma::rowvec x, arma::mat & X, int &K, int & Tob, double &h)
+{
+  arma::mat x_mat(Tob, K);
+  x_mat.each_row() = x;
+  arma::mat D = (x_mat - X)/h;
+  
+  double out = 0.0;
+  for (int i = 0; i < Tob; i++)
+  {
+    out+= exp(arma::as_scalar(D.row(i) * D.row(i).t()) * (-0.5)) / sqrt(pow(2*3.14159265358979323846, K));
+  }  
+  return out/(Tob*pow(h, K));
+}
+
+// Multivariate Gaussian kernel density of observing all data in X (Tob X K)
+// [[Rcpp::export]]
+arma::vec Mkl_gauss_vec( arma::mat X, int &K, int & Tob, double &h)
+{
+  arma::vec out(Tob);
+  for (int i = 0; i < Tob; i++)
+  {
+    out(i) = Mkl_gauss(X.row(i), X, K, Tob, h);
+  }
+  return out;
+}
+
+
 // Negative Log-Likelihood function
 // [[Rcpp::export]]
 double fast_kernel_ICA(arma::vec& par,  arma::mat& u,  arma::mat& C) 
