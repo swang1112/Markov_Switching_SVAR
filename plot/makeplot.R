@@ -10,20 +10,25 @@ Rcpp::sourceCpp('../fun/MS_ICA.cpp')
 Sig = crossprod(u)/(var3$obs - 3 * var3$p - 1)
 C   = Sig %>% chol %>% t
 
-#erg_list  = readRDS( '../out/a_grid.rds')
-erg_list  = readRDS( '../out/a_grid_fein.rds')
+# erg_list  = readRDS( '../out/a_grid.rds')
+# erg_list  = readRDS( '../out/a_grid_fein.rds')
+erg_list  = readRDS( '../out/a_M3.rds')
 erg_vals  = erg_list %>% lapply('[[', 2) %>% unlist
 erg_optim = erg_list[[which.min(erg_vals)]]
 par_optim = erg_optim$par
 
 
 # states distribution -----------------------------------------------------
-TProb = filter_MS_ICA(par_optim, u, C, init = c(.5, .5))
-pdf("../plot/TP_filtered.pdf", width = 12, height = 6)
-par(mfrow = c(2,1))
+#TProb = filter_MS_ICA(par_optim, u, C, init = c(.5, .5))
+# pdf("../plot/TP_filtered.pdf", width = 12, height = 6)
+TProb = filter_MS_ICA_M3(par_optim, u, C, init = c(1/3, 1/3, 1/3))
+
+pdf("../plot/TP_filtered_M3.pdf", width = 12, height = 6)
+par(mfrow = c(3,1))
 par(mar = c(2,2,1,1))
 plot(data_time[-1], TProb[-1,1], type = 'l', main = 'state1')
 plot(data_time[-1], TProb[-1,2], type = 'l', main = 'state2')
+plot(data_time[-1], TProb[-1,3], type = 'l', main = 'state3')
 par(mfrow = c(1,1))
 dev.off()
 
