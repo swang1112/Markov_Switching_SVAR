@@ -38,7 +38,7 @@ arma::mat givensQ_fast(arma::vec thetas, int K)
     
     Out = Out * temp;
   }
-  return Out;
+  return Out.t();
 }
 
 // get mixing matrix
@@ -231,11 +231,13 @@ arma::mat filter_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::v
   
   double bw = pow(4.0/(3.0*NoOBs), 0.2);
   
+  
   //transform series 
   arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();
   arma::mat series_state2 = arma::inv(getB(theta.subvec(3, 5), C))*r.t();
+  arma::mat series_state3 = arma::inv(getB(theta.subvec(6, 8), C))*r.t();
   
- //KDE for the first state
+  //KDE for the first state
   arma::vec dens_1_1= kl_gauss_vec(series_state1.row(0).t(), NoOBs, bw);
   arma::vec dens_2_1= kl_gauss_vec(series_state1.row(1).t(), NoOBs, bw);
   arma::vec dens_3_1= kl_gauss_vec(series_state1.row(2).t(), NoOBs, bw);
@@ -244,6 +246,11 @@ arma::mat filter_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::v
   arma::vec dens_1_2= kl_gauss_vec(series_state2.row(0).t(), NoOBs, bw);
   arma::vec dens_2_2= kl_gauss_vec(series_state2.row(1).t(), NoOBs, bw);
   arma::vec dens_3_2= kl_gauss_vec(series_state2.row(2).t(), NoOBs, bw);
+  
+  //KDE for the third state
+  arma::vec dens_1_3= kl_gauss_vec(series_state3.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_3= kl_gauss_vec(series_state3.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_3= kl_gauss_vec(series_state3.row(2).t(), NoOBs, bw);
   
   //double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) ));
   
@@ -259,6 +266,66 @@ arma::mat filter_MS_ICA( arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::v
     
     Out.row(i) = {p1t, p2t};
     //llv-=log(llv_temp);
+    
+  }
+  return Out;
+}
+
+// [[Rcpp::export]]
+arma::mat filter_MS_ICA_M3(arma::vec& theta,  arma::mat& r,  arma::mat& C, arma::vec & init) 
+{
+  //int K = r.n_cols;
+  int NoOBs = r.n_rows;
+  
+  //Switching Probabilities
+  arma::vec lamb = theta.subvec(9, 14);
+  arma::mat P    = getMarkov(lamb);
+  
+  //initial state
+  double p1t = init(0);
+  double p2t = init(1);
+  double p3t = init(2);
+  
+  double bw = pow(4.0/(3.0*NoOBs), 0.2);
+  
+  arma::mat Out(NoOBs, 3);
+  Out.row(0) = {p1t, p2t, p3t};
+  
+  //transform series 
+  arma::mat series_state1 = arma::inv(getB(theta.subvec(0, 2), C))*r.t();
+  arma::mat series_state2 = arma::inv(getB(theta.subvec(3, 5), C))*r.t();
+  arma::mat series_state3 = arma::inv(getB(theta.subvec(6, 8), C))*r.t();
+  
+  //KDE for the first state
+  arma::vec dens_1_1= kl_gauss_vec(series_state1.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_1= kl_gauss_vec(series_state1.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_1= kl_gauss_vec(series_state1.row(2).t(), NoOBs, bw);
+  
+  //KDE for the first state
+  arma::vec dens_1_2= kl_gauss_vec(series_state2.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_2= kl_gauss_vec(series_state2.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_2= kl_gauss_vec(series_state2.row(2).t(), NoOBs, bw);
+  
+  //KDE for the third state
+  arma::vec dens_1_3= kl_gauss_vec(series_state3.row(0).t(), NoOBs, bw);
+  arma::vec dens_2_3= kl_gauss_vec(series_state3.row(1).t(), NoOBs, bw);
+  arma::vec dens_3_3= kl_gauss_vec(series_state3.row(2).t(), NoOBs, bw);
+  
+  //double llv = -log(arma::as_scalar(p1t*dens_1_1(0)*dens_2_1(0)*dens_3_1(0) + p2t* dens_1_2(0)*dens_2_2(0)*dens_3_2(0) ));
+  
+  for (int i = 1; i < NoOBs; i++) {
+    
+    
+    double llv_temp1 = arma::as_scalar((p1t*P(0,0)+p2t*P(1,0)+p3t*P(2,0))*dens_1_1(i)*dens_2_1(i)*dens_3_1(i));
+    double llv_temp2 = arma::as_scalar((p1t*P(0,1)+p2t*P(1,1)+p3t*P(2,1))*dens_1_2(i)*dens_2_2(i)*dens_3_2(i));
+    double llv_temp3 = arma::as_scalar((p1t*P(0,2)+p2t*P(1,2)+p3t*P(2,2))*dens_1_3(i)*dens_2_3(i)*dens_3_3(i));
+    
+    double llv_temp = arma::as_scalar(llv_temp1+llv_temp2+llv_temp3);
+    p1t = llv_temp1/llv_temp;
+    p2t = llv_temp2/llv_temp;
+    p3t = llv_temp3/llv_temp;
+
+    Out.row(i) = {p1t, p2t, p3t};
     
   }
   return Out;
