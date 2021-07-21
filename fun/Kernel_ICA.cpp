@@ -160,7 +160,6 @@ double nglike_ICA(arma::vec & theta, arma::mat & u_st,  bool neg = false)
     out +=  arma::sum(log(tdist)) + log(arma::det(arma::inv_sympd(S) * Q.t()));
   }
   
-  out += log(arma::det(arma::inv_sympd(S) * Q.t()));
   
   if (neg) 
   {
