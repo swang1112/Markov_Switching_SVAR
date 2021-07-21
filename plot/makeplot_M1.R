@@ -11,21 +11,31 @@ Sig = crossprod(u)/(var3$obs - 3 * var3$p - 1)
 C   = Sig %>% chol %>% t
 
 ## M = 1
-#erg_list = readRDS( '../out/a_M1.rds')
-erg_list = readRDS( '../out/a_M1_Jaki.rds')
-erg_vals  = erg_list %>% lapply('[[', 2) %>% unlist
-erg_optim = erg_list[[which.min(erg_vals)]]
-par_optim = erg_optim$par
+# erg_list = readRDS( '../out/a_M1.rds')
+# erg_list = readRDS( '../out/a_M1_Jaki.rds')
+# erg_vals  = erg_list %>% lapply('[[', 2) %>% unlist
+# erg_optim = erg_list[[which.min(erg_vals)]]
+# par_optim = erg_optim$par
 
 # shock(oil supply, aggregate demand, oil stock demand)
-(B = getB(par_optim, C))
-B[,c(1)] = B[,c(1)]*-1
+# (B = getB(par_optim, C))
+
+erg_list = readRDS( '../out/a_M1_ng.rds')
+D = erg_list$D
+(B = erg_list$B)
+
+B[,1] = B[,1]*-1
+
+# check
+B %*% D %*% t(B)
+Sig
 
 irf = IRF_fast(Bcoef, B, 36) %>% trans_irf 
 ip  = irf %>% plot_irf() 
 ip
-#ggsave('../plot/ip_M1.pdf', ip, width = 12, height = 8)
-ggsave('../plot/ip_M1_Jaki.pdf', ip, width = 12, height = 8)
+# ggsave('../plot/ip_M1.pdf', ip, width = 12, height = 8)
+# ggsave('../plot/ip_M1_Jaki.pdf', ip, width = 12, height = 8)
+ggsave('../plot/ip_M1_ng.pdf', ip, width = 12, height = 8)
 
 # dcov --------------------------------------------------------------------
 dcov = var3 %>% svars::id.dc()
