@@ -24,6 +24,7 @@ arma::imat choose2_fast(int &N)
 }
 
 // Givens rotation
+// [[Rcpp::export]]
 arma::mat givensQ_fast(arma::vec thetas, int K)
 {
   arma::mat Out = arma::eye(K, K);
@@ -125,6 +126,49 @@ double fast_kernel_ICA(arma::vec& par,  arma::mat& u,  arma::mat& C)
   
   return llv;
 }
+
+
+// Negative Log-Likelihood function L(rot, sig, lambda)
+// [[Rcpp::export]]
+double nglike_ICA(arma::vec & theta, arma::mat & u_st,  bool neg = false)
+{
+  
+  int K     = u_st.n_cols;
+  int Tob   = u_st.n_rows;
+  
+  arma::vec rot = theta.subvec(0, K*(K-1)/2-1);
+  arma::vec sig = theta.subvec(K*(K-1)/2, K*(K-1)/2 + K-1);
+  arma::vec lambda = theta.subvec(K*(K-1)/2 + K, theta.n_elem - 1);
+  
+  if(any(sig < 0.0)|| any(lambda < 2.0)){
+    return 1e25;
+  }
+  
+  arma::mat Q = givensQ_fast(rot, K);
+  arma::mat S = arma::diagmat(1/sig);
+  
+  arma::mat E = arma::inv_sympd(S) * Q.t() * u_st.t();
+  
+  arma::vec tdist(K);
+  double out = 0.0;
+  for (int i = 0; i < Tob; ++i) {
+    arma::vec shock = E.col(i);
+    
+    for (int j = 0; j < K; j++) {
+      tdist(j) = R::dt(shock(j), lambda(j), 0);
+    }
+    out +=  arma::sum(log(tdist)) + log(arma::det(arma::inv_sympd(S) * Q.t()));
+  }
+  
+  out += log(arma::det(arma::inv_sympd(S) * Q.t()));
+  
+  if (neg) 
+  {
+    return out*-1;
+  }
+  return out;
+}
+  
 
 NumericVector kdensity(arma::vec r){
   Environment pkg = Rcpp::Environment::namespace_env("kdensity");
