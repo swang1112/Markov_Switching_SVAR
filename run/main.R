@@ -1,4 +1,5 @@
 rm(list = ls())
+graphics.off()
 library(magrittr)
 library(pbapply)
 source('reduced_form.R')
@@ -6,32 +7,52 @@ source('reduced_form.R')
 start_time = Sys.time()
 
 # \beginn{config} ---------------------------------------------------------
-M     = 1
-Core  = 108
-Jaki  = TRUE
+M     = 2
+Core  = 64
+NGML  = TRUE
+Jaki  = FALSE
 # \end{config} ------------------------------------------------------------
 
-if (M == 1) Rcpp::sourceCpp('../fun/Kernel_ICA.cpp') else Rcpp::sourceCpp('../fun/MS_ICA.cpp')
+if (M == 1) {
+  Rcpp::sourceCpp('../fun/Kernel_ICA.cpp')
+  source('../fun/ng_ica.R')
+} else Rcpp::sourceCpp('../fun/MS_ICA.cpp')
+
 if (Jaki) require(kdensity)
 
 Nrot  = choose(3,2)*M
+K     = 3
 
 # variable(oil production, real activities, oil price)
-Sig = crossprod(u)/(var3$obs - 3 * var3$p - 1)
-C   = Sig %>% chol %>% t
+Sig   = crossprod(u)/(var3$obs - 3 * var3$p - 1)
+C     = Sig %>% chol %>% t
+u_st  = t(solve(C) %*% t(u))
 
 if (M == 2){
-  grid_prob  = seq(0, 1, by = 0.01) 
+  grid_prob  = seq(0.5, 1, by = 0.005) 
   start_prob = expand.grid(grid_prob, grid_prob) %>% as.matrix()
   startpars = list()
   set.seed(1234)
-  for (i in 1:nrow(start_prob)) {
-    startpars[[i]] = c(runif(Nrot, 0, pi/2), start_prob[i,])
+  if (NGML){
+    for (i in 1:nrow(start_prob)) {
+      startpars[[i]] = c(runif(Nrot, 0, pi/2), 
+                         sort(rchisq(K*2,3), decreasing = T),
+                         runif(K*2, 2, 20),
+                         start_prob[i,])
+    }
+    
+    # run
+    erg_list = pblapply(startpars, nlm, f = loglike_ngMS_ICA, u_st = u_st, init = c(.5, .5),
+                        gradtol = 1e-10, iterlim = 10000, cl = Core)
+    saveRDS(erg_list, '../out/a_M2_ngml.rds')
+  } else {
+    for (i in 1:nrow(start_prob)) {
+      startpars[[i]] = c(runif(Nrot, 0, pi/2), start_prob[i,])
+    }
+    # run
+    erg_list = pblapply(startpars, optim, fn = loglike_MS_ICA, r = u, C = C, init = c(.5, .5), cl = Core)
+    saveRDS(erg_list, '../out/a_grid_fein.rds')
   }
-  # run
-  erg_list = pblapply(startpars, optim, fn = loglike_MS_ICA, r = u, C = C, init = c(.5, .5), cl = Core)
-  saveRDS(erg_list, '../out/a_grid_fein.rds')
-  
 } else if (M == 3){
   grid_prob  = seq(0, 0.6, by = 0.1) 
   start_prob = expand.grid(grid_prob, grid_prob, grid_prob, grid_prob, grid_prob, grid_prob) %>% as.matrix()
@@ -56,10 +77,8 @@ if (M == 2){
                         cl = 7)
     saveRDS(erg_list, '../out/a_M1_Jaki.rds')
   } else {
-    erg_list = pblapply(startpars, optim, fn = fast_kernel_ICA, u = u, C = C,
-                      control = list(maxit = 25000, tmax = 100, abstol = 1e-30), 
-                      cl = 7)
-    saveRDS(erg_list, '../out/a_M1.rds')
+    erg_list = ng_ica(u)
+    saveRDS(erg_list, '../out/a_M1_ng.rds')
   }
 }
 
