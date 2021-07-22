@@ -24,6 +24,7 @@ arma::imat choose2_fast(int &N)
 }
 
 // Givens rotation
+// [[Rcpp::export]]
 arma::mat givensQ_fast(arma::vec thetas, int K)
 {
   arma::mat Out = arma::eye(K, K);
@@ -38,7 +39,7 @@ arma::mat givensQ_fast(arma::vec thetas, int K)
     
     Out = Out * temp;
   }
-  return Out.t();
+  return Out;
 }
 
 // get mixing matrix
@@ -408,6 +409,69 @@ arma::mat filter_MS_ICA_M3(arma::vec& theta,  arma::mat& r,  arma::mat& C, arma:
     p3t = llv_temp3/llv_temp;
 
     Out.row(i) = {p1t, p2t, p3t};
+    
+  }
+  return Out;
+}
+
+// filter
+// [[Rcpp::export]]
+arma::mat filter_MS_ngml( arma::vec& theta,  arma::mat & u_st, arma::vec & init) 
+{
+  int K     = u_st.n_cols;
+  int Tob   = u_st.n_rows;
+  
+  // Switching Probabilities
+  double p11 = theta(theta.n_elem - 2);
+  double p12 = 1-p11;
+  double p22 = theta(theta.n_elem - 1);
+  double p21 = 1-p22;
+  
+  // structural parameters
+  arma::vec rot = theta.subvec(0, K*(K-1)-1);
+  arma::vec sig = theta.subvec(K*(K-1), K*(K-1) + 2*K-1);
+  arma::vec lambda = theta.subvec(K*(K-1) + 2*K, theta.n_elem - 3);
+  
+
+  //initial state
+  double p1t = init(0);
+  double p2t = init(1);
+  
+  // rotation matrices
+  arma::mat Q_1 = givensQ_fast(rot.subvec(0, 2), K);
+  arma::mat Q_2 = givensQ_fast(rot.subvec(3, 5), K);
+  
+  // structural covariances
+  arma::mat S_1 = arma::diagmat(1/sig.subvec(0, 2));
+  arma::mat S_2 = arma::diagmat(1/sig.subvec(3, 5));
+  
+  // dof
+  arma::vec dof_1 = lambda.subvec(0,2);
+  arma::vec dof_2 = lambda.subvec(3,5);
+  
+  // transform series (B = CQ)
+  arma::mat E_1 = arma::inv_sympd(S_1) * Q_1.t() * u_st.t();
+  arma::mat E_2 = arma::inv_sympd(S_2) * Q_2.t() * u_st.t();
+  
+  
+  // Joint density
+  arma::vec dens_M1 = tdens_joint(E_1, K, Tob, S_1, Q_1, dof_1);
+  arma::vec dens_M2 = tdens_joint(E_2, K, Tob, S_2, Q_2, dof_2);
+  
+  arma::mat Out(Tob, 2);
+  Out.row(0) = {p1t, p2t};
+  
+  for (int i = 1; i < Tob; i++) {
+    
+    
+    double llv_temp1 = arma::as_scalar((p1t*p11+p2t*p21)*exp(dens_M1(i)));
+    double llv_temp2 = arma::as_scalar((p1t*p12+p2t*p22)*exp(dens_M2(i)));
+    
+    double llv_temp = arma::as_scalar(llv_temp1+llv_temp2);
+    p1t = llv_temp1/llv_temp;
+    p2t = llv_temp2/llv_temp;
+    
+    Out.row(i) = {p1t, p2t};
     
   }
   return Out;
